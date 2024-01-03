@@ -1,0 +1,127 @@
+---COVID 19 data exploration
+--- Skills used: Joins, CTEs, Aggregation, Temp tables, Windows function
+
+
+-- Total Cases vs Total Deaths
+-- Shows likelihood of dying if you contract covid in your country
+
+SELECT
+      Sum(new_cases::int) As total_newcases,
+	  Sum(new_deaths::int) As total_newdeaths,
+	  (Sum(new_deaths::int)*1.0)/ Nullif(Sum(new_cases::int),0)*100 As Deathpercentage
+	  
+FROM public.covid_deaths
+
+WHERE continent is not null
+
+--- Total deathcounts per continent
+SELECT 
+      locations,
+	  Sum(new_deaths::int)as total_deathcounts
+FROM public.covid_deaths
+WHERE continent is NULL 
+      and locations not in ('World','International', 'European Union')
+GROUP BY locations
+ORDER BY total_deathcounts desc
+
+-- Total Cases vs Population
+-- Shows what percentage of population infected with Covid
+
+SELECT
+      locations,
+	  population,
+	  Max(total_cases::int) as Highestinfection,
+	  Max(total_cases::int)/(population::numeric)*100 as percentagepopulationinfection
+FROM public.covid_deaths
+GROUP BY locations, population
+ORDER BY percentagepopulationinfection desc
+
+
+--- percentage infections in different locations
+ 
+SELECT
+      locations,
+	  population,
+	  dates,
+	  Max(total_cases::int) as Highestinfection,
+	  Max(total_cases::int)/(population::numeric)*100 as percentagepopulationinfection
+FROM public.covid_deaths
+GROUP BY locations, population,dates
+ORDER BY percentagepopulationinfection desc
+
+
+
+---------------------------------------CTE table-----------------------------------------------------------
+WITH Popvsvac (continent, locations, dates, population, new_vaccinations, rollingpeoplevaccinated) As
+(
+SELECT 
+    dea.continent, 
+    dea.locations, 
+    dea.dates, 
+    dea.population, 
+    vac.new_vaccinations,
+    SUM(vac.new_vaccinations::INT) OVER (PARTITION BY dea.locations ORDER BY dea.locations, dea.dates) AS rollingpeoplevaccinated
+FROM 
+    public.covid_deaths dea
+JOIN 
+    public.covid_vaccinations vac
+ON 
+    dea.locations = vac.locations
+    AND dea.dates = vac.dates
+WHERE 
+    dea.continent IS Not NULL
+)
+
+SELECT *, (rollingpeoplevaccinated/cast(population As numeric)*100) As Rollingpercentagevaccinated
+FROM Popvsvac;
+
+
+-----------------------Temp table-----------------------------------------------------
+
+DROP Table if exists percentpopulationvaccinated;
+
+CREATE TABLE percentpopulationvaccinated (
+    continent VARCHAR(255),
+    locations VARCHAR(255),
+    dates date,
+    population varchar,
+    new_vaccinations varchar,
+    rollingpeoplevaccinated NUMERIC
+);
+
+-- Insert data into the table
+INSERT INTO percentpopulationvaccinated (continent, locations, dates, population, new_vaccinations, rollingpeoplevaccinated)
+SELECT 
+    dea.continent, 
+    dea.locations, 
+    dea.dates, 
+    dea.population, 
+    vac.new_vaccinations,
+    SUM(vac.new_vaccinations::INT) OVER (PARTITION BY dea.locations ORDER BY dea.locations, dea.dates) AS rollingpeoplevaccinated
+FROM 
+    public.covid_deaths dea
+JOIN 
+    public.covid_vaccinations vac
+ON 
+    dea.locations = vac.locations
+    AND dea.dates = vac.dates
+WHERE 
+    dea.continent IS Not NULL;
+
+-- Select data from the table
+SELECT 
+    *,
+    (rollingpeoplevaccinated / CAST(population AS numeric)) * 100 AS vaccination_percentage
+FROM 
+    percentpopulationvaccinated;
+
+----------------------------------------------------------View--------------------------------------
+
+CREATE VIEW percentpopulationvaccinatewd as
+Select dea.continent, dea.locations, dea.dates, dea.population, vac.new_vaccinations,
+sum(vac.new_vaccinations::INT) Over (Partition by dea.locations order by dea.locations, dea.dates) As rollingpeoplevaccinated
+from public.covid_deaths dea
+join public.covid_vaccinations vac
+  on dea.locations = vac.locations
+  and dea.dates = vac.dates
+where dea.continent is not null;
