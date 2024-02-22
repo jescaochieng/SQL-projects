@@ -1,3 +1,17 @@
+--Apple store review analysis
+--Project context; Data set that covers information on apps available in apple app store
+--Stakeholder: Web developer, an aspiring app developer who needs data driven insights to decide 
+which app to develop; Questions, what app category are most popular, what pricing should I set for
+the app, how can I maximize user ratings
+--Business objective: Find the best app to develop 
+--Source of data: Kaggle (Apple store for all the apps gives information on --- and each application description)
+--Analysis tool: SQLITE
+--Process of analysis: Downloaded the data in excel format, Divided the app description files into smaller 
+chunks because SQL has a limited amount of 4MBs it can load
+
+
+
+
 --Joined the description data into one file
 
 CREATE TABLE Combined_appleStore_descriptions AS 
@@ -96,3 +110,16 @@ SELECT
 FROM AppleStore) As a
 
 WHERE a.rank=1
+
+---RECOMMENDATIONS
+Paid  apps have higher ratings than free apps which maybe because users of paid apps have higher engagement rates due to high perceived values and so we can tell our client if the quality of app is high they should consider charging.
+Apps supporting multiple languages 10 to 30 have higher rating it’s not number of languages your app support but the focus should be on the right language
+
+Finance and book apps have low rating; suggesting user needs are not being fully met in these genres. So developing a relevant and meaningful app may bring more users
+  
+The length of app description has a positive correlation with user rating which implies user appreciate a clear understanding of app features and capabilities before deciding to use the app. So, a well-crafted app description can set clear expectation and eventually increase satisfaction of users
+
+Target rating’; On average all the apps have an average rating of 3.5 so in order to stand out from the crowd we should aim for user rating higher than 3.5
+
+The games and entertainment genres have high volumes of apps suggesting the market maybe saturated. So, entering this space maybe challenging due to high competition, however it also suggest the high user demand in this domain
+
